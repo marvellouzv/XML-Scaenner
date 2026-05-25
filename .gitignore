@@ -9,6 +9,9 @@ __pycache__/
 *.sqlite3
 *.db
 *.log
+*.db-shm
+*.db-wal
+*.db-journal
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -21,6 +24,7 @@ backend/venv/
 # Node / frontend build
 frontend/node_modules/
 frontend/dist/
+*.tsbuildinfo
 
 # Env files
 .env
@@ -32,4 +36,7 @@ frontend/.env
 # IDE
 .idea/
 .vscode/
+
+# Local runtime artifacts
+start-local.log
 
