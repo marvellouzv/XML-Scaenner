@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sitemap-scanner-backend
+    environment:
+      DATABASE_URL: sqlite:////app/data/sitemap_scanner.db
+      MAX_CONCURRENT_REQUESTS: 5
+      REQUEST_DELAY_SECONDS: 0.5
+      TITLE_SCAN_MAX_ROUNDS: 3
+      MAX_SITEMAP_URLS: 0
+      URL_TEST_MAX_CONCURRENT: 3
+      URL_TEST_DELAY_SECONDS: 0.3
+      URL_TEST_MAX_ROUNDS: 3
+      URL_TEST_TIMEOUT_SECONDS: 5
+    volumes:
+      - sitemap_scanner_data:/app/data
+    ports:
+      - "8011:8011"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sitemap-scanner-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5180:80"
+    restart: unless-stopped
+
+volumes:
+  sitemap_scanner_data:
