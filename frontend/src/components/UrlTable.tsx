@@ -231,7 +231,7 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
                       href={row.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 underline-offset-2 hover:underline"
+                      className="text-blue-700 underline-offset-2 hover:underline dark:text-blue-400"
                       title={row.url}
                     >
                       {row.url}
@@ -245,7 +245,7 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
                     <td className="max-w-[280px] px-3 py-2 text-muted-foreground">
                       <div className="flex items-center gap-2">
                         {statusIcon(row.test_status)}
-                        <span className={`truncate ${row.test_status === "error" ? "text-red-300" : ""}`} title={row.test_error ?? ""}>
+                        <span className={`truncate ${row.test_status === "error" ? "text-red-700 dark:text-red-300" : ""}`} title={row.test_error ?? ""}>
                           {testCellText(row)}
                         </span>
                       </div>
@@ -256,7 +256,7 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
                       <div className="flex items-center gap-2">
                         {statusIcon(row.scan_status)}
                         <span
-                          className={`truncate ${row.scan_status === "error" ? "text-red-300" : ""}`}
+                          className={`truncate ${row.scan_status === "error" ? "text-red-700 dark:text-red-300" : ""}`}
                           title={row.scan_status === "error" ? row.scan_error ?? "" : ""}
                         >
                           {titleCellText(row)}

@@ -697,3 +697,29 @@ Izvestnye problemy / TODO
 ## Next Steps
 - Progonyat ruchnoj UI-scenarij: neskolko raz pereklyuchit Light/Dark na glavnom ekrane i v Archive modal, proverit chtoby kontrast teksta/tablits ostavalsya komfortnym.
 - Pri neobhodimosti vynesti gradienty shell-fona v otdelnye utility-klassy/Tailwind layer dlya bolee prostoj podderzhki dizajna.
+
+[2026-05-25] - Tonkaya nastrojka kontrasta v obeih temah
+
+## Summary of Changes
+- Sdelana lokalnaya dizajn-shlifovka bez izmeneniya logiki: uluchshen kontrast dlya ssylok URL i oshibok v tablice.
+- Dlya light temi ssylki sdelany bolee chitaemymi (`text-blue-700`), pri etom v dark teme sohraneny `text-blue-400`.
+- Tekst oshibok v tablice pereveden na kontrastnuyu paru: `text-red-700` (light) i `text-red-300` (dark).
+- Dopolnitelno ukreplen hover-state dlya `secondary` knopok (bez izmeneniya funkcii knopok).
+
+## Files Changed
+- `frontend/src/components/UrlTable.tsx`
+- `frontend/src/components/ui/button.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Izmeneniya kasayutsya tolko vizualnogo sloya; biznes-logika i API ne zatronuty.
+- Vospriyatie kontrasta mozhet zaviset ot kalibrovki monitora; rekomenduetsya bystraja proverka na realnyh ekranah.
+
+## Validation Performed
+- `frontend`: `npm run build` uspeshen.
+- Lint po izmenennym failam (`UrlTable`, `button`) bez oshibok.
+- Provereno, chto klassy dlya light/dark zadany yavnym obrazom (`dark:*`) i ne lomayut pereklyuchenie temi.
+
+## Next Steps
+- Ruchno proverit v UI: ssylki URL, krasnye oshibki v kolonke Title/URL Test, i secondary knopki v light/dark.
+- Esli ton ne ponravitsya, bystryj otkat: `git restore frontend/src/components/UrlTable.tsx frontend/src/components/ui/button.tsx HANDOFF.md`.
