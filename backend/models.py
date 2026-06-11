@@ -33,5 +33,6 @@ class SitemapEntry(Base):
     test_error = Column(String, nullable=True)
     test_http_status = Column(Integer, nullable=True)
     test_response_time_ms = Column(Integer, nullable=True)
+    test_document_type = Column(String, nullable=True)  # html | file | empty | unknown
 
     session = relationship("ScanSession", back_populates="urls")

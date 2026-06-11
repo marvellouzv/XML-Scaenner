@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import {
   exportSitemap,
+  deleteArchiveSession,
   getArchiveSessions,
   getLoadSitemapProgress,
   getLoadSitemapResult,
+  pauseUrlTest,
+  retestUrls,
   getScanProgress,
   getUrlTestProgress,
   restoreArchiveSession,
@@ -145,6 +148,58 @@ export function useStartUrlTestMutation() {
   });
 }
 
+export function usePauseUrlTestMutation() {
+  const { sessionId, setError } = useSitemapStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!sessionId) {
+        throw new Error("Сначала загрузите sitemap");
+      }
+      return pauseUrlTest(sessionId);
+    },
+    onSuccess: () => {
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: ["test-progress", sessionId] });
+      }
+    },
+    onError: (error: unknown) => {
+      setError(getApiErrorMessage(error));
+    }
+  });
+}
+
+export function useRetestUrlsMutation() {
+  const { sessionId, setStatus, setError } = useSitemapStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (entryIds: number[]) => {
+      if (!sessionId) {
+        throw new Error("Сначала загрузите sitemap");
+      }
+      if (!entryIds.length) {
+        throw new Error("Выберите URL для RETEST");
+      }
+      return retestUrls(sessionId, entryIds);
+    },
+    onMutate: () => {
+      setStatus("testing");
+      setError(null);
+    },
+    onSuccess: () => {
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: ["test-progress", sessionId] });
+      }
+    },
+    onError: (error: unknown) => {
+      setStatus("error");
+      setError(getApiErrorMessage(error));
+    }
+  });
+}
+
 export function useTestProgressQuery(enabled: boolean) {
   const { sessionId } = useSitemapStore();
 
@@ -204,12 +259,29 @@ export function useRestoreArchiveMutation() {
       setError(null);
     },
     onSuccess: (data) => {
-      setSession(data.session_id, data.urls);
-      setStatus("loaded");
+      setSession(data.session_id, data.sitemap_url, data.urls, data.session_status === "testing" ? "loaded" : data.session_status);
+      if (data.session_status !== "testing") {
+        setStatus(data.session_status);
+      }
     },
     onError: (error: unknown) => {
       setStatus("error");
       setError(getApiErrorMessage(error));
+    }
+  });
+}
+
+export function useDeleteArchiveMutation() {
+  const queryClient = useQueryClient();
+  const { sessionId, reset } = useSitemapStore();
+
+  return useMutation({
+    mutationFn: async (targetSessionId: number) => deleteArchiveSession(targetSessionId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["archive-sessions"] });
+      if (sessionId === data.session_id) {
+        reset();
+      }
     }
   });
 }

@@ -723,3 +723,520 @@ Izvestnye problemy / TODO
 ## Next Steps
 - Ruchno proverit v UI: ssylki URL, krasnye oshibki v kolonke Title/URL Test, i secondary knopki v light/dark.
 - Esli ton ne ponravitsya, bystryj otkat: `git restore frontend/src/components/UrlTable.tsx frontend/src/components/ui/button.tsx HANDOFF.md`.
+
+[2026-06-11] - Dobavlen blok "Otchet po sessii" pod statusom
+
+## Summary of Changes
+- V UI dobavlen novyj blok otcheta pod `WorkStatus`, kotoryj pokazivaet v strukturirovannom vide:
+  - fajl sitemap,
+  - skolko stranic najdeno,
+  - skolko stranic uzhe protestirovano (TEST URL),
+  - skolko rabochih stranic,
+  - skolko stranic s oshibkami i razbivku po tipam oshibok.
+- Dlya korrektnogo otobrazheniya "Fajl takoj-to" rasshiren backend-otvet `SitemapLoadResponse`: dobavleno pole `sitemap_url`.
+- Frontend-store rasshiren polem `sitemapUrl`, chtoby dannye o fayle sohranyalis dlya sessii i otcheta.
+
+## Files Changed
+- `backend/schemas.py`
+- `backend/routers/sitemap.py`
+- `frontend/src/types/index.ts`
+- `frontend/src/store/useSitemapStore.ts`
+- `frontend/src/hooks/useSitemapQuery.ts`
+- `frontend/src/components/SessionReport.tsx` (new)
+- `frontend/src/App.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Blok "Provedeno testirovanie stranic" i razdel oshibok opirayutsya na rezultat TEST URL; do zapuska testa znacheniya mogut byt 0.
+- Razbivka oshibok stroitsya po tekstu `test_error`; blizkie po smyslu, no raznye po tekstu oshibki budut pokazany otdelnymi strokami.
+
+## Validation Performed
+- Frontend: `npm run build` uspehno.
+- Backend: `python -m compileall backend` uspehno.
+- Lint po izmenennym frontend-failam: oshibok ne obnaruzheno.
+
+## Next Steps
+- Proiti UI-scenarij: LOAD sitemap -> TEST URL -> proverit blok "Otchet po sessii" na aktualnye chisla i razbivku oshibok.
+- Po potrebe dobavit otdelnoe pole "ne protestirovano", esli nuzhno pokazyvat ostatok neproverennyh URL v otchete.
+
+[2026-06-11] - Utochnenie vida blokov dannyh v sessii
+
+## Summary of Changes
+- Po zaprosu UI ubran tekstovyj zagolovok `Otchet po sessii`: ostavleny tolko informativnye blokи s dannymi.
+- Ubran blok `Testirovanie`.
+- V verhnej stroke blokov ostavleny i vyrovneny metriky:
+  - `Fajl`,
+  - `Najdeno`,
+  - `Rabotchie`,
+  - `Oshibki` (kolichestvo stranic s oshibkami).
+- Nizhnyaya detalnaya stroka s perechnem tipov oshibok sohranena bez izmenenij.
+
+## Files Changed
+- `frontend/src/components/SessionReport.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Metrika `Rabotchie` i `Oshibki` zavisit ot zapuska TEST URL; do testa znacheniya mogut byt nulevymi.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `SessionReport.tsx`: oshibok net.
+
+## Next Steps
+- Proverit vizualno raspolozhenie blokov na osnovnom ekrane v light/dark temah.
+- Pri neobhodimosti dobavit pole `Ne protestirovano`, no tolko esli eto nuzhno v biznes-scenarii.
+
+[2026-06-11] - Perekomponovka layout otcheta i paneli deystvij
+
+## Summary of Changes
+- Perestroen blok dannyh po sessii, chtoby on ne byl vytyanutym:
+  - 1 stroka: blok `Fajl`,
+  - 2 stroka: tri blokа `Najdeno`, `Rabotchie`, `Oshibki`,
+  - 3 stroka: detalizaciya tipov oshibok (ostavlena kak byla).
+- Panel deystvij (`COPY`, `EXPORT`, `TEST URL`, `SCAN TITLES`) perenesena v pravuyu kolonku i postroena vertikalno.
+- `ActionBar` rasshiren parametrom layout (`row`/`column`) bez izmeneniya biznes-logiki knopok.
+
+## Files Changed
+- `frontend/src/components/ActionBar.tsx`
+- `frontend/src/components/SessionReport.tsx`
+- `frontend/src/App.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Na uzkih ekranah pravaya kolonka avtomaticheski perenosit panel deystvij vniz (responsive), chto yavlyaetsya ozidaemym povedeniem.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po izmenennym failam (`App`, `ActionBar`, `SessionReport`) bez oshibok.
+
+## Next Steps
+- Ruchnaya proverka ergonomiki: dostupnost knopok i chitabelnost blokov v light/dark temah.
+- Pri neobhodimosti tonko nastroit shirinu pravoj kolonki pod predpochtitelnuyu plotnost UI.
+
+[2026-06-11] - Utochnenie poryadka blokov: otchet sleva, knopki sprava
+
+## Summary of Changes
+- Ispravlen poryadok raspolozheniya v stroke posle `WorkStatus`:
+  - sleva teper `SessionReport`,
+  - sprava vertikalnaya panel deystvij (`ActionBar`).
+- Blok progressa (`ScanProgress`) vozvrashchen v otdelnyj polnoshirinyj card nizhe, chtoby ne smeshivatsya s panelyu knopok.
+
+## Files Changed
+- `frontend/src/App.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Na uzkom ekrane (responsive) pravaia kolonka po-prezhnemu perenosit panel vniz, eto ozidaemoe povedenie.
+
+## Validation Performed
+- `frontend`: `npm run build` uspeshen.
+- Lint po `App.tsx`: oshibok net.
+
+## Next Steps
+- Vizualno proverit, chto blok otcheta deystvitelno sleva, a panel knopok sprava na desktop-shirine.
+
+[2026-06-11] - Dobavlen blok metrik vremeni otveta v otchet
+
+## Summary of Changes
+- V `SessionReport` dobavlen novyj blok pered detalizaciej oshibok:
+  - minimalnoe vremya otveta,
+  - maksimalnoe vremya otveta,
+  - srednee vremya otveta.
+- Metriki schitayutsya po `test_response_time_ms` iz rezultatov TEST URL.
+- Esli dannyh po vremeni net (test ne zapuskalas ili net zamerov), pokazyvaetsya `—`.
+
+## Files Changed
+- `frontend/src/components/SessionReport.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Metriki vremeni zavisyat ot seti i mogut silno varirovat pri kazhdom prohone TEST URL.
+- Srednee vremya schitaetsya po dostupnym zameryam i okruglyaetsya do celogo ms.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `SessionReport.tsx`: oshibok net.
+
+## Next Steps
+- Ruchno proverit na realnoj sessii: posle TEST URL sravnit logiku min/max/avg s dannymi v tablice.
+
+[2026-06-11] - TEST URL: opredelenie tipa dokumenta (html/file/empty)
+
+## Summary of Changes
+- Rasshiren TEST URL: teper dlya kazhdoj stranicy opredelyaetsya tip dokumenta:
+  - `html`,
+  - `file`,
+  - `empty`,
+  - `unknown`.
+- `empty` realizovan po trebovaniyu: stranicа schitaetsya pustoj, kogda v otvete net razmetki (bez HTML markup).
+- Klassifikaciya stroitsya na zagolovkah (`Content-Type`, `Content-Disposition`) i, pri fallback GET (405/501), na kratkom snippete tela (do ~2KB), chtoby ne skachivat polnye stranicy.
+- Tip dokumenta sohranyaetsya v BD (`test_document_type`) i vyvoditsya v UI v kolonke `URL Test`.
+
+## Files Changed
+- `backend/models.py`
+- `backend/schemas.py`
+- `backend/crud.py`
+- `backend/services/url_tester.py`
+- `backend/main.py`
+- `backend/alembic/versions/20260611_0005_add_test_document_type.py` (new)
+- `frontend/src/types/index.ts`
+- `frontend/src/components/UrlTable.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Nekotorye servery mogut otdavat nekorrektnye zagolovki `Content-Type`, poetomu `unknown/file` vozmozhny dazhe dlya HTML-podobnyh stranic.
+- `empty` orientirovan na otsutstvie razmetki; stranica s minimalnym no validnym HTML budet klassificirovana kak `html`, a ne `empty`.
+
+## Validation Performed
+- Backend: `python -m compileall backend` uspehno.
+- Frontend: `npm run build` uspehno.
+- Lint po izmenennym failam: oshibok ne obnaruzheno.
+
+## Next Steps
+- Provesti TEST URL na realnoj sessii i proverit, chto v tablice poyavlyaetsya metka tipa dokumenta vmeste s HTTP i timing.
+- Pri neobhodimosti dopolnit pravila klassifikacii spetsifichnymi MIME-tipami pod vas target-sajty.
+
+[2026-06-11] - Utochnenie metrik: pustye stranicy
+
+## Summary of Changes
+- V bloke `Vremya otveta stranic` iz rascheta min/max/avg isklyucheny stranicy tipa `empty`.
+- V razdel `Stranicy s oshibkami` dobavlena otdelnaya stroka `Pustye stranicy` s kolichestvom.
+- Stroka `Pustye stranicy` pokazyvaetsya tolko esli takih stranic bolshe 0.
+
+## Files Changed
+- `frontend/src/components/SessionReport.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- `Pustye stranicy` ne ravny oshibkam po HTTP-statusu; eto otdelnaya klassifikaciya tipa dokumenta.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `SessionReport.tsx`: oshibok net.
+
+## Next Steps
+- Proverit na realnyh dannyh, chto pri nalichii `empty`:
+  - oni ne vpliyayut na min/max/avg timing,
+  - stroka `Pustye stranicy` poyavlyaetsya i schitaetsya korrektno.
+
+[2026-06-11] - Fiks lozhnoj klassifikacii `empty` v TEST URL
+
+## Summary of Changes
+- Ispravlena logika opredeleniya pustyh HTML-stranic:
+  - ranee dlya `text/html` klassifikaciya mogla opiratsya tolko na `HEAD`, chto davalo lozhnyj `empty` dlya realnyh stranic.
+  - teper dlya HTML-vetki beretsya korotkij `GET`-snippet (do ~2KB) pered finalnoj klassifikaciej.
+- V rezulate:
+  - stranica `https://aroma-group.ru/company/licenses/` korrektno opredelyaetsya kak `html`,
+  - stranica `https://samara.aroma-group.ru/company/staff/rukovoditeli/anton-zhuykov/` ostayetsya `empty`.
+- Dopolnitelno utochnena klassifikaciya: esli `text/html`, no snippeta net -> `empty`; esli snippet est, no bez HTML-razmetki -> `unknown`.
+
+## Files Changed
+- `backend/services/url_tester.py`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Dlya HTML dobavlen korotkij GET-preview, poetomu TEST URL mozhet stat chut medlennee na chisto HTML-stranicah (obychno umirenno i predskazuemo).
+- Chast CDN/serverov mozhet nestandartno obrabatyvat `Range`, no fallback realizovan cherez bezopasnoe chtenie nebolshogo snippeta.
+
+## Validation Performed
+- `python -m compileall backend/services/url_tester.py` uspehno.
+- Ruchnaya proverka `_request_probe` na dvuh problemnyh URL:
+  - `.../company/licenses/` -> `html`,
+  - `.../anton-zhuykov/` -> `empty`.
+
+## Next Steps
+- Zapustit TEST URL na vashej sessii, chtoby obnavit zapisannye znacheniya tipa dokumenta v tekuschej tablice i otchete.
+
+[2026-06-11] - Obnovlen format Excel-eksporta po trebovaniyu
+
+## Summary of Changes
+- V Excel-eksporte udalen stolbec `Priority`.
+- Stolbec `Title` teper dobavlyaetsya tolko esli v sessii est realnye znacheniya title (hotya by u odnoj stranicy).
+- Dobavleny novye stolbcy:
+  - `Test URL` (status/probe-rezultat po URL, vklyuchaya HTTP i tip dokumenta pri nalichii),
+  - `Response Time (ms)` (vremya otklika iz TEST URL).
+
+## Files Changed
+- `backend/routers/sitemap.py`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- `Test URL` mozhet soderzhat tekst oshibki ili `Pending`, esli test ne zavershen.
+- Esli TEST URL ne zapuskalsya, stolbcy testa budut s pustymi/nejtralnymi znacheniyami.
+
+## Validation Performed
+- Backend: `python -m compileall backend/routers/sitemap.py` uspehno.
+- Lint po `backend/routers/sitemap.py`: oshibok net.
+
+## Next Steps
+- Proverit realnyj eksport na sessii s i bez title, chtoby podtverdit uslovnoe poyavlenie stolbca `Title`.
+
+[2026-06-11] - Pause/Resume dlya TEST URL
+
+## Summary of Changes
+- Dobavlen polnyj workflow pauzy i vozobnovleniya TEST URL:
+  - kogda test idet (`status=testing`), vmesto `TEST URL` pokazyvaetsya knopka `TEST PAUSE` v zheltovatom stile,
+  - po nazhatiyu `TEST PAUSE` skanirovanie ostanavlivaetsya, tekushchie rezultaty ostayutsya v sessii/arhive,
+  - posle pauzy (i pri vosstanovlenii sessii iz arhiva) dlya sessii s nepoproverennymi URL pokazyvaetsya `RESUME TEST`,
+  - `RESUME TEST` doskaniruet tolko ostavshiesya `pending` URL.
+- Backend:
+  - dobavlen endpoint `POST /api/scan/test-urls/pause`,
+  - v url tester dobavlen flag otmeny i bezopasnaya ostanovka po rounds,
+  - perезапуск testa teper ne sbрасывает uzhe gotovye `done/error`, a prodolzhaet po `pending`,
+  - v `SitemapLoadResponse` dobavlen `session_status` dlya korrektnogo vosstanovleniya sostoyaniya UI.
+
+## Files Changed
+- `backend/schemas.py`
+- `backend/routers/sitemap.py`
+- `backend/routers/scan.py`
+- `backend/services/url_tester.py`
+- `backend/crud.py`
+- `frontend/src/types/index.ts`
+- `frontend/src/api/client.ts`
+- `frontend/src/store/useSitemapStore.ts`
+- `frontend/src/hooks/useSitemapQuery.ts`
+- `frontend/src/components/ActionBar.tsx`
+- `frontend/src/App.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Pri nazhatii pause chast URL mozhet uspiet zavershit tekushchiy zapros, prezhde chem task ostanovitsya; eto normalno dlya asinhronnogo graceful-stop.
+- `RESUME TEST` poyavlyaetsya dlya sessij, gde est i rezultaty, i ostavshiesya `pending` URL.
+
+## Validation Performed
+- Backend: `python -m compileall backend` uspehno.
+- Frontend: `npm run build` uspehno.
+- Lint po izmenennym failam: oshibok ne obnaruzheno.
+
+## Next Steps
+- Ruchno proverit scenarij:
+  1) zapustit TEST URL,
+  2) nazhat TEST PAUSE,
+  3) vosstanovit sessiyu iz arhiva,
+  4) nazhat RESUME TEST i proverit doskanirovanie tolko pending URL.
+
+[2026-06-11] - Interaktivnye razvoroty v bloke otcheta
+
+## Summary of Changes
+- V razdele `Stranicy s oshibkami` stroki oshibok sdelany klikabelnymi:
+  - po kliku stroka razvorachivaetsya vniz,
+  - pokazyvaetsya spisok URL, u kotoryh imenno eta oshibka.
+- V razdele `Vremya otveta stranic` kartochki `Minimum`, `Maksimum`, `Srednee` sdelany klikabelnymi:
+  - `Minimum` -> 10 URL s naimenshim response time (ot min k bolshemu),
+  - `Maksimum` -> 10 URL s naibolshim response time (ot max k menshemu),
+  - `Srednee` -> 10 URL blizhaishih k srednemu po pravilu: 1 centralnyj + 5 vyshe + 4 nizhe.
+- Vse spiski otobrazhayutsya pod sootvetstvuyushchim blokom i soderzhat klikabelnye URL.
+
+## Files Changed
+- `frontend/src/components/SessionReport.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Dlya bolshih sessij razvoroty mogut vizualno zanimat mnogo mesta (eto ozidaemo dlya detalnogo drill-down).
+- V scenarii `Srednee` pri nedostatke znachenij vyshe/nizhe budet pokazano menshe 10 URL.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `SessionReport.tsx`: oshibok net.
+
+## Next Steps
+- Ruchno proverit kliki po oshibkam i metrikam vremeni na realnoj sessii s raznorodnymi dannymi.
+
+[2026-06-11] - Uproshchen format razvorota URL-spiskov dlya kopirovaniya
+
+## Summary of Changes
+- V razvorachivaemyh blokah (po oshibkam i po metrikam vremeni) ubrano razdelenie URL po otdelnym kartochkam/div.
+- Spiski teper pokazyvayutsya kak prostye novye stroki v odnoj tekstovoj oblasti (`whitespace-pre-wrap`), chtoby ih bylo udobno vydelit i skopirovat myshyu.
+- Format dlya metrik vremeni: `N ms | URL` na kazhdoj stroke.
+
+## Files Changed
+- `frontend/src/components/SessionReport.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- V tekuschem formate URL v razvorote ne klikabelny kak ssylki (eto osозnanno radi prostogo mass-copy).
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `SessionReport.tsx`: oshibok net.
+
+## Next Steps
+- Proverit realny copy-paste iz razvorota v brauzere (vydelenie myshyu i kopirovanie spiskom).
+
+[2026-06-11] - RETEST vybrannyh URL s chekboksami i Shift-range
+
+## Summary of Changes
+- V `UrlTable` dobavleny chekboksy sleva u kazhdoj stroki + chekboks "select all" na tekushej stranice.
+- Podderzhan multiselect s `Shift`:
+  - vybor pervoj stroki,
+  - `Shift + click` po poslednej stroke,
+  - avtomaticheskoe vydelenie diapazona mezhdu nimi (vkluchaya granicy).
+- Dobavlena knopka `RETEST` mezhdu vyborom sitemap-fajla i selektorom kolichestva strok.
+- Po nazhatiyu `RETEST` vse vybrannye URL otpravlyayutsya na povtornyj TEST URL, i dannye po nim obnavlyayutsya.
+
+Backend changes:
+- Dobavlen endpoint `POST /api/scan/test-urls/retest` s `session_id + entry_ids`.
+- Dobavlen selektivnyj reset test-polей tolko dlya vybrannyh URL.
+- Dobavlen otdelnyj run-mode `run_url_test_for_entries(...)` dlya obrabotki konkretno vybrannyh URL bez sbrosa vseh ostalnyh.
+
+## Files Changed
+- `backend/schemas.py`
+- `backend/crud.py`
+- `backend/services/url_tester.py`
+- `backend/routers/scan.py`
+- `backend/routers/sitemap.py`
+- `frontend/src/api/client.ts`
+- `frontend/src/hooks/useSitemapQuery.ts`
+- `frontend/src/components/UrlTable.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Shift-range rabotaet v predelah tekuschej stranicy paginacii (predskazuemoe povedenie dlya tablichnogo UI).
+- Pri izmenenii filtra/spiska vybor mozet chastichno vyhodit za granicy tekuschego filtered view; v `RETEST` uchityvayutsya tolko vybrannye ID, prisutstvuyushchie v tekuschem filtered naborе.
+
+## Validation Performed
+- Backend: `python -m compileall backend` uspehno.
+- Frontend: `npm run build` uspehno.
+- Lint po izmenennym failam: oshibok net.
+
+## Next Steps
+- Ruchnaya proverka UX:
+  1) vybrat diapazon chekboksov c `Shift`,
+  2) nazhat `RETEST`,
+  3) proverit obnavlenie statusov v kolonke `URL Test`.
+
+[2026-06-11] - Fiks zavisaniya TEST URL v statuse "v ocheredi"
+
+## Summary of Changes
+- Ustranen scenarij, kogda URL ostayutsya `pending`, a test fakticheski ne prodolzhaetsya iz-za poteri fonovoj task (naprimer, posle reload/restart).
+- V `GET /api/scan/test-progress` dobavlen recovery:
+  - esli sessiya v `testing`, no runtime-sostoyaniya net, sessiya schitaetsya prervannoj,
+  - pri nalichii pending URL sessiya avtomaticheski perevoditsya v `loaded` (chtoby byl dostupen `RESUME TEST`),
+  - esli pending net, sessiya zakryvaetsya kak `done`.
+- API progress pri etom vozvrashchaet runtime-message/decision s ponyatnoj podskazkoj pro `RESUME TEST`.
+
+## Files Changed
+- `backend/routers/scan.py`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Recovery srabatyvaet pri otsutstvii runtime-state; eto pravilno dlya "task poteryana", no ne dlya redkih sluchaev medlennogo starta (na praktike predpochtitelnee ne viset v `testing` beskonechno).
+
+## Validation Performed
+- `python -m compileall backend/routers/scan.py` uspehno.
+- Proverka na realnoj zavysshej sessii:
+  - do fixa: status ostavalsya `testing`, scanned ne ros,
+  - posle fixa: sessiya perevedena v `loaded`, progress otdayot `interrupted` podskazku.
+
+## Next Steps
+- V UI nazhat `RESUME TEST` dlya problemnoj sessii i proverit, chto pending URL snova nachinayut obrabatyvatsya.
+
+[2026-06-11] - Razdelenie HTTP 500 po tipu oshibki
+
+## Summary of Changes
+- Utochnena obrabotka `HTTP 500` v TEST URL:
+  - esli `500` i dokument klassificiruetsya kak `html`, eto schitaetsya "server error page rendered" (kontentnaya servernaya oshibka stranicy) i srazu fiksiruetsya kak `error` bez retry;
+  - esli `500`, no renderovannoj stranicy net (`document_type != html`), eto schitaetsya problemoj dostupa/connectivity i ostayetsya retryable (`pending` -> pereobhod).
+- Eto ubiraet putanitsu mezhdu "stranica oshibki est i otrisovana" i "saity nedostupen po seti/transportu".
+
+## Files Changed
+- `backend/services/url_tester.py`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Klassifikaciya zavisit ot pravil opredeleniya tipa dokumenta (`html/file/empty/unknown`); pri ekzotichnyh servernyh otvetah granica mozhet trebovat dop. tuning.
+
+## Validation Performed
+- `python -m compileall backend/services/url_tester.py` uspehno.
+- Lint po failu: oshibok net.
+
+## Next Steps
+- Proverit na realnyh URL s `500`, chto v otchete oshibok razlichayutsya:
+  - `Server error page returned (HTML rendered)`,
+  - `Access/connectivity issue (no rendered page)`.
+
+[2026-06-11] - Dobavlen filtr po oshibkam v tablice URL
+
+## Summary of Changes
+- V `UrlTable` dobavlen otdelnyj filtr oshibok, raspolozhennyj sprava ot filtra `Sitemap File`.
+- Filtr podderzhivaet rezhimy:
+  - `Все ошибки`,
+  - `Только с ошибками`,
+  - `Без ошибок`,
+  - konkretnyj tekst oshibki (iz dinamicheski sobrannogo spiska).
+- Filtr rabotaet sovmestno s poisikom po URL, filtrom sitemap, RETEST i paginaciej.
+
+## Files Changed
+- `frontend/src/components/UrlTable.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Spisok oshibok formiruetsya po `scan_error` i `test_error`; pri bolshom razbrosе tekstov mozet byt mnogo punktov v selector.
+
+## Validation Performed
+- `frontend`: `npm run build` uspehno.
+- Lint po `UrlTable.tsx`: oshibok net.
+
+## Next Steps
+- Ruchno proverit filtraciyu na sessii s raznymi tipami oshibok (test + scan).
+
+[2026-06-11] - Udalenie zapisey iz arhiva "bez sleda"
+
+## Summary of Changes
+- V archive modal dobavlena knopka `Удалить` dlya kazhdoj sessii.
+- Pri udalenii pokazyvaetsya podtverzhdenie s yavnym preduprezhdeniem, chto dannye vosstanovit nelzya.
+- Backend dobavlen endpoint `DELETE /api/sitemap/archive/{session_id}`.
+- Udalenie vypolnyaetsya po sessii s cascade-pravilom ORM (`delete-orphan`), poetomu udalyaetsya vsyo:
+  - sama `scan_session`,
+  - vse svyazannye `sitemap_entries`,
+  - vse rezultaty scan/test po etoj sessii.
+- Frontend:
+  - posle uspeshnogo udaleniya arhiv perezagruzhaetsya,
+  - esli udalena tekuschaya aktivnaya sessiya, store sbрасыvaetsya (UI ne derzhit stale state).
+
+## Files Changed
+- `backend/schemas.py`
+- `backend/crud.py`
+- `backend/routers/sitemap.py`
+- `frontend/src/api/client.ts`
+- `frontend/src/hooks/useSitemapQuery.ts`
+- `frontend/src/components/ArchiveModal.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Udalenie neobratimoe.
+- Pri odnovremennyh operaciyah vosstanovlenie/udalenie odnoj i toj zhe sessii vozmozhny gonki na storone klienta; v UI dobavleny disabled-sostoyaniya knopok vo vremya mutate.
+
+## Validation Performed
+- Backend: `python -m compileall backend` uspehno.
+- Frontend: `npm run build` uspehno.
+- Lint po izmenennym failam: oshibok net.
+
+## Next Steps
+- Ruchno proverit scenarij: udalit sessiyu iz arhiva i ubedit'sya, chto ona ne vosstanavlivaetsya povtorno i ne vidna v spiske.
+
+[2026-06-11] - Guard na udalenie aktivnyh sessij arhiva
+
+## Summary of Changes
+- Dobavlen zashchitnyj guard na udalenie sessij, kotorye v aktivnom processe:
+  - backend zapreshchaet delete dlya `status in {scanning, testing}` s `409`.
+- V UI arhiva knopka `Удалить` dlya takih sessij otklyuchaetsya i pokazyvaetsya podskazka:
+  - `Удаление недоступно во время активного процесса`.
+
+## Files Changed
+- `backend/routers/sitemap.py`
+- `frontend/src/components/ArchiveModal.tsx`
+- `HANDOFF.md`
+
+## Risks / Known Issues
+- Esli status v BD zавис (napr. posle avariynogo restarta) i ostalsya `testing/scanning`, udalenie budet blokirovatsya do recovery statusa.
+
+## Validation Performed
+- Backend: `python -m compileall backend/routers/sitemap.py` uspehno.
+- Frontend: `npm run build` uspehno.
+- Lint po izmenennym failam: oshibok net.
+
+## Next Steps
+- Proverit v arhive oba scenariya:
+  - aktivnaya sessiya (delete disabled),
+  - zavershennaya sessiya (delete available).

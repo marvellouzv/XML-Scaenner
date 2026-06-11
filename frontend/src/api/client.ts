@@ -80,6 +80,28 @@ export async function startUrlTest(sessionId: number): Promise<{ task_id: string
   return data;
 }
 
+export async function pauseUrlTest(sessionId: number): Promise<{ task_id: string; status: "started" }> {
+  const { data } = await api.post<{ task_id: string; status: "started" }>(
+    "/scan/test-urls/pause",
+    { session_id: sessionId },
+    {
+      timeout: 60000
+    }
+  );
+  return data;
+}
+
+export async function retestUrls(sessionId: number, entryIds: number[]): Promise<{ task_id: string; status: "started" }> {
+  const { data } = await api.post<{ task_id: string; status: "started" }>(
+    "/scan/test-urls/retest",
+    { session_id: sessionId, entry_ids: entryIds },
+    {
+      timeout: 60000
+    }
+  );
+  return data;
+}
+
 export async function getUrlTestProgress(sessionId: number): Promise<ScanProgressResponse> {
   const { data } = await api.get<ScanProgressResponse>("/scan/test-progress", {
     params: { session_id: sessionId },
@@ -120,5 +142,10 @@ export async function getArchiveSessions(params?: { query?: string; limit?: numb
 
 export async function restoreArchiveSession(sessionId: number): Promise<LoadSitemapResponse> {
   const { data } = await api.get<LoadSitemapResponse>(`/sitemap/archive/${sessionId}`);
+  return data;
+}
+
+export async function deleteArchiveSession(sessionId: number): Promise<{ status: "deleted"; session_id: number }> {
+  const { data } = await api.delete<{ status: "deleted"; session_id: number }>(`/sitemap/archive/${sessionId}`);
   return data;
 }

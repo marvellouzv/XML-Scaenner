@@ -1,6 +1,6 @@
-﻿import { Archive, LoaderCircle, Search, X } from "lucide-react";
+﻿import { Archive, LoaderCircle, Search, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useArchiveQuery, useRestoreArchiveMutation } from "../hooks/useSitemapQuery";
+import { useArchiveQuery, useDeleteArchiveMutation, useRestoreArchiveMutation } from "../hooks/useSitemapQuery";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -35,6 +35,7 @@ export function ArchiveModal({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
   const archiveQuery = useArchiveQuery(query, open);
   const restoreMutation = useRestoreArchiveMutation();
+  const deleteMutation = useDeleteArchiveMutation();
 
   const items = archiveQuery.data?.items ?? [];
   const total = archiveQuery.data?.total ?? 0;
@@ -117,16 +118,37 @@ export function ArchiveModal({ open, onClose }: Props) {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{item.query_matches.toLocaleString("ru-RU")}</td>
                     <td className="px-3 py-2">
-                      <Button
-                        onClick={async () => {
-                          await restoreMutation.mutateAsync(item.session_id);
-                          onClose();
-                        }}
-                        disabled={restoreMutation.isPending}
-                      >
-                        {restoreMutation.isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Восстановить
-                      </Button>
+                      {item.status === "scanning" || item.status === "testing" ? (
+                        <div className="mb-2 text-xs text-amber-700 dark:text-amber-300">Удаление недоступно во время активного процесса</div>
+                      ) : null}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={async () => {
+                            await restoreMutation.mutateAsync(item.session_id);
+                            onClose();
+                          }}
+                          disabled={restoreMutation.isPending || deleteMutation.isPending}
+                        >
+                          {restoreMutation.isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Восстановить
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={async () => {
+                            const confirmed = window.confirm(
+                              `Удалить сессию #${item.session_id} из архива? Будут удалены все URL и результаты тестов/сканирования без возможности восстановления.`
+                            );
+                            if (!confirmed) {
+                              return;
+                            }
+                            await deleteMutation.mutateAsync(item.session_id);
+                          }}
+                          disabled={restoreMutation.isPending || deleteMutation.isPending || item.status === "scanning" || item.status === "testing"}
+                        >
+                          {deleteMutation.isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                          Удалить
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

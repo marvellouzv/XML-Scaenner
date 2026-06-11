@@ -18,6 +18,7 @@ interface ProgressState {
 
 interface SitemapState {
   sessionId: number | null;
+  sitemapUrl: string | null;
   loadJobId: string | null;
   loadingFoundCount: number;
   urls: SitemapUrl[];
@@ -26,7 +27,7 @@ interface SitemapState {
   progress: ProgressState;
   setLoadJob: (jobId: string) => void;
   setLoadingFoundCount: (found: number) => void;
-  setSession: (sessionId: number, urls: SitemapUrl[]) => void;
+  setSession: (sessionId: number, sitemapUrl: string, urls: SitemapUrl[], status?: SessionStatus) => void;
   setUrls: (urls: SitemapUrl[]) => void;
   setStatus: (status: SessionStatus) => void;
   setError: (error: string | null) => void;
@@ -51,19 +52,20 @@ const initialProgress: ProgressState = {
 
 export const useSitemapStore = create<SitemapState>((set) => ({
   sessionId: null,
+  sitemapUrl: null,
   loadJobId: null,
   loadingFoundCount: 0,
   urls: [],
   status: "idle",
   error: null,
   progress: initialProgress,
-  setLoadJob: (loadJobId) => set({ loadJobId, status: "loading", error: null, loadingFoundCount: 0, urls: [], sessionId: null }),
+  setLoadJob: (loadJobId) => set({ loadJobId, status: "loading", error: null, loadingFoundCount: 0, urls: [], sessionId: null, sitemapUrl: null }),
   setLoadingFoundCount: (loadingFoundCount) => set({ loadingFoundCount }),
-  setSession: (sessionId, urls) =>
-    set({ sessionId, urls, loadJobId: null, loadingFoundCount: urls.length, status: "loaded", error: null, progress: initialProgress }),
+  setSession: (sessionId, sitemapUrl, urls, status = "loaded") =>
+    set({ sessionId, sitemapUrl, urls, loadJobId: null, loadingFoundCount: urls.length, status, error: null, progress: initialProgress }),
   setUrls: (urls) => set({ urls }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
   setProgress: (progress) => set({ progress }),
-  reset: () => set({ sessionId: null, loadJobId: null, loadingFoundCount: 0, urls: [], status: "idle", error: null, progress: initialProgress })
+  reset: () => set({ sessionId: null, sitemapUrl: null, loadJobId: null, loadingFoundCount: 0, urls: [], status: "idle", error: null, progress: initialProgress })
 }));

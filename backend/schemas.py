@@ -12,6 +12,11 @@ class ScanStartRequest(BaseModel):
     session_id: int
 
 
+class ScanRetestRequest(BaseModel):
+    session_id: int
+    entry_ids: list[int]
+
+
 class SitemapUrlBase(BaseModel):
     id: int
     url: str
@@ -26,6 +31,7 @@ class SitemapUrlBase(BaseModel):
     test_error: str | None = None
     test_http_status: int | None = None
     test_response_time_ms: int | None = None
+    test_document_type: Literal["html", "file", "empty", "unknown"] | None = None
 
     class Config:
         from_attributes = True
@@ -33,6 +39,8 @@ class SitemapUrlBase(BaseModel):
 
 class SitemapLoadResponse(BaseModel):
     session_id: int
+    sitemap_url: str
+    session_status: str
     urls: list[SitemapUrlBase]
     total: int
 
@@ -54,6 +62,11 @@ class SitemapLoadProgressResponse(BaseModel):
 class ScanStartResponse(BaseModel):
     task_id: str
     status: Literal["started"]
+
+
+class DeleteArchiveResponse(BaseModel):
+    status: Literal["deleted"]
+    session_id: int
 
 
 class ScanProgressResponse(BaseModel):

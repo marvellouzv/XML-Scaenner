@@ -43,6 +43,16 @@ def get_entries_by_session(db: Session, session_id: int) -> list[models.SitemapE
     return db.query(models.SitemapEntry).filter(models.SitemapEntry.session_id == session_id).all()
 
 
+def get_entries_by_ids(db: Session, session_id: int, entry_ids: list[int]) -> list[models.SitemapEntry]:
+    if not entry_ids:
+        return []
+    return (
+        db.query(models.SitemapEntry)
+        .filter(models.SitemapEntry.session_id == session_id, models.SitemapEntry.id.in_(entry_ids))
+        .all()
+    )
+
+
 def mark_session_status(db: Session, session_id: int, status: str) -> None:
     session = get_session(db, session_id)
     if session:
@@ -79,7 +89,54 @@ def reset_entry_test_statuses(db: Session, session_id: int) -> None:
         entry.test_error = None
         entry.test_http_status = None
         entry.test_response_time_ms = None
+        entry.test_document_type = None
     db.commit()
+
+
+def reset_pending_entry_test_statuses(db: Session, session_id: int) -> None:
+    entries = (
+        db.query(models.SitemapEntry)
+        .filter(models.SitemapEntry.session_id == session_id, models.SitemapEntry.test_status == "pending")
+        .all()
+    )
+    for entry in entries:
+        entry.test_error = None
+        entry.test_http_status = None
+        entry.test_response_time_ms = None
+        entry.test_document_type = None
+    db.commit()
+
+
+def has_test_results(db: Session, session_id: int) -> bool:
+    count = (
+        db.query(func.count(models.SitemapEntry.id))
+        .filter(models.SitemapEntry.session_id == session_id, models.SitemapEntry.test_status.in_(["done", "error"]))
+        .scalar()
+        or 0
+    )
+    return count > 0
+
+
+def has_pending_test_entries(db: Session, session_id: int) -> bool:
+    count = (
+        db.query(func.count(models.SitemapEntry.id))
+        .filter(models.SitemapEntry.session_id == session_id, models.SitemapEntry.test_status == "pending")
+        .scalar()
+        or 0
+    )
+    return count > 0
+
+
+def reset_selected_entries_test_statuses(db: Session, session_id: int, entry_ids: list[int]) -> int:
+    entries = get_entries_by_ids(db, session_id=session_id, entry_ids=entry_ids)
+    for entry in entries:
+        entry.test_status = "pending"
+        entry.test_error = None
+        entry.test_http_status = None
+        entry.test_response_time_ms = None
+        entry.test_document_type = None
+    db.commit()
+    return len(entries)
 
 
 def update_entry_title(db: Session, entry_id: int, title: str | None, scan_status: str, scan_error: str | None = None) -> None:
@@ -105,6 +162,7 @@ def update_entry_test_result(
     test_status: str,
     test_http_status: int | None,
     test_response_time_ms: int | None,
+    test_document_type: str | None,
     test_error: str | None = None,
 ) -> None:
     for attempt in range(5):
@@ -114,6 +172,7 @@ def update_entry_test_result(
                 entry.test_status = test_status
                 entry.test_http_status = test_http_status
                 entry.test_response_time_ms = test_response_time_ms
+                entry.test_document_type = test_document_type
                 entry.test_error = test_error
                 db.commit()
             return
@@ -241,3 +300,12 @@ def get_archive_sessions(
             }
         )
     return result, total
+
+
+def delete_session(db: Session, session_id: int) -> bool:
+    session = get_session(db, session_id)
+    if not session:
+        return False
+    db.delete(session)
+    db.commit()
+    return True

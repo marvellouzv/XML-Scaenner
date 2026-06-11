@@ -1,7 +1,9 @@
 ﻿import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Clock3, Search, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { MouseEvent, useMemo, useState } from "react";
 import { SitemapUrl } from "../types";
+import { useRetestUrlsMutation } from "../hooks/useSitemapQuery";
+import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Skeleton } from "./ui/skeleton";
@@ -62,6 +64,22 @@ function testSortValue(row: SitemapUrl): string {
 }
 
 function testCellText(row: SitemapUrl): string {
+  const documentTypeLabel = (() => {
+    if (row.test_document_type === "html") {
+      return "HTML";
+    }
+    if (row.test_document_type === "file") {
+      return "Файл";
+    }
+    if (row.test_document_type === "empty") {
+      return "Пустая";
+    }
+    if (row.test_document_type === "unknown") {
+      return "Неизвестно";
+    }
+    return null;
+  })();
+
   if (row.test_status === "error") {
     return row.test_error ?? "Ошибка без деталей";
   }
@@ -70,7 +88,7 @@ function testCellText(row: SitemapUrl): string {
   }
   if (row.test_http_status != null) {
     const timing = row.test_response_time_ms != null ? `${row.test_response_time_ms} ms` : "без замера времени";
-    return `HTTP ${row.test_http_status} • ${timing}`;
+    return documentTypeLabel ? `HTTP ${row.test_http_status} • ${timing} • ${documentTypeLabel}` : `HTTP ${row.test_http_status} • ${timing}`;
   }
   return "—";
 }
@@ -78,10 +96,14 @@ function testCellText(row: SitemapUrl): string {
 export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("__all__");
+  const [errorFilter, setErrorFilter] = useState("__all__");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState("50");
   const [sortKey, setSortKey] = useState<SortKey>("url");
   const [sortAsc, setSortAsc] = useState(true);
+  const retestMutation = useRetestUrlsMutation();
 
   const sourceOptions = useMemo(() => {
     const unique = Array.from(new Set(rows.map((row) => row.source_sitemap).filter((value): value is string => Boolean(value))));
@@ -89,14 +111,40 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
     return unique;
   }, [rows]);
 
+  const errorOptions = useMemo(() => {
+    const unique = new Set<string>();
+    for (const row of rows) {
+      if (row.test_status === "error") {
+        unique.add((row.test_error || "Ошибка без деталей").trim());
+      }
+      if (row.scan_status === "error") {
+        unique.add((row.scan_error || "Ошибка без деталей").trim());
+      }
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const filteredRows = useMemo(
     () =>
       rows.filter((row) => {
         const matchesSearch = row.url.toLowerCase().includes(search.toLowerCase());
         const matchesSource = sourceFilter === "__all__" || row.source_sitemap === sourceFilter;
-        return matchesSearch && matchesSource;
+        const rowErrors = [
+          row.test_status === "error" ? (row.test_error || "Ошибка без деталей").trim() : null,
+          row.scan_status === "error" ? (row.scan_error || "Ошибка без деталей").trim() : null
+        ].filter((value): value is string => Boolean(value));
+
+        const matchesError =
+          errorFilter === "__all__"
+            ? true
+            : errorFilter === "__has_error"
+              ? rowErrors.length > 0
+              : errorFilter === "__no_error"
+                ? rowErrors.length === 0
+                : rowErrors.includes(errorFilter);
+        return matchesSearch && matchesSource && matchesError;
       }),
-    [rows, search, sourceFilter]
+    [rows, search, sourceFilter, errorFilter]
   );
 
   const sortedRows = useMemo(() => {
@@ -117,6 +165,11 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
   const pageSize = Number(perPage);
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const pageRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
+  const pageRowsById = useMemo(() => {
+    const map = new Map<number, number>();
+    pageRows.forEach((row, index) => map.set(row.id, index));
+    return map;
+  }, [pageRows]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -125,6 +178,45 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
     }
     setSortKey(key);
     setSortAsc(true);
+  };
+
+  const selectedOnPageCount = pageRows.filter((row) => selectedIds.includes(row.id)).length;
+  const isAllPageSelected = pageRows.length > 0 && selectedOnPageCount === pageRows.length;
+
+  const toggleSelectAllOnPage = () => {
+    if (isAllPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageRows.some((row) => row.id === id)));
+      return;
+    }
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...pageRows.map((row) => row.id)])));
+  };
+
+  const toggleSelectRow = (rowId: number, event: MouseEvent<HTMLInputElement>) => {
+    const shiftPressed = event.shiftKey;
+    if (shiftPressed && lastSelectedId != null && pageRowsById.has(lastSelectedId) && pageRowsById.has(rowId)) {
+      const start = pageRowsById.get(lastSelectedId) ?? 0;
+      const end = pageRowsById.get(rowId) ?? 0;
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      const rangeIds = pageRows.slice(from, to + 1).map((row) => row.id);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...rangeIds])));
+      setLastSelectedId(rowId);
+      return;
+    }
+
+    setSelectedIds((prev) => (prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]));
+    setLastSelectedId(rowId);
+  };
+
+  const selectedFilteredIds = filteredRows.map((row) => row.id).filter((id) => selectedIds.includes(id));
+
+  const handleRetest = async () => {
+    if (!selectedFilteredIds.length) {
+      return;
+    }
+    await retestMutation.mutateAsync(selectedFilteredIds);
+    setSelectedIds([]);
+    setLastSelectedId(null);
   };
 
   return (
@@ -165,6 +257,36 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={errorFilter}
+            onValueChange={(value) => {
+              setErrorFilter(value);
+              setPage(1);
+            }}
+          >
+            <div className="w-[280px]">
+              <SelectTrigger>
+                <SelectValue placeholder="Все ошибки" />
+              </SelectTrigger>
+            </div>
+            <SelectContent>
+              <SelectItem value="__all__">Все ошибки</SelectItem>
+              <SelectItem value="__has_error">Только с ошибками</SelectItem>
+              <SelectItem value="__no_error">Без ошибок</SelectItem>
+              {errorOptions.map((errorText) => (
+                <SelectItem key={errorText} value={errorText}>
+                  {errorText}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="secondary"
+            onClick={handleRetest}
+            disabled={selectedFilteredIds.length === 0 || retestMutation.isPending}
+          >
+            RETEST ({selectedFilteredIds.length.toLocaleString("ru-RU")})
+          </Button>
           <Select value={perPage} onValueChange={(value) => setPerPage(value)}>
             <SelectTrigger>
               <SelectValue placeholder="50" />
@@ -192,6 +314,9 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
           <table className="min-w-full text-sm">
             <thead className="bg-muted text-foreground">
               <tr>
+                <th className="px-3 py-2 text-left">
+                  <input type="checkbox" checked={isAllPageSelected} onChange={toggleSelectAllOnPage} />
+                </th>
                 <th className="px-3 py-2 text-left">#</th>
                 <th className="cursor-pointer px-3 py-2 text-left" onClick={() => toggleSort("url")}>
                   URL
@@ -225,6 +350,9 @@ export function UrlTable({ rows, loading = false, showTitle, showTest }: Props) 
             <tbody>
               {pageRows.map((row, index) => (
                 <tr key={row.id} className={row.scan_status === "error" ? "bg-red-100/60 dark:bg-red-950/30" : "border-t border-border"}>
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={selectedIds.includes(row.id)} onClick={(event) => toggleSelectRow(row.id, event)} readOnly />
+                  </td>
                   <td className="px-3 py-2 text-muted-foreground">{(page - 1) * pageSize + index + 1}</td>
                   <td className="max-w-[620px] truncate px-3 py-2 text-foreground">
                     <a

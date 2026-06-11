@@ -52,6 +52,9 @@ def on_startup() -> None:
         if "test_response_time_ms" not in columns:
             connection.execute(text("ALTER TABLE sitemap_entries ADD COLUMN test_response_time_ms INTEGER"))
             logger.info("Added missing column sitemap_entries.test_response_time_ms")
+        if "test_document_type" not in columns:
+            connection.execute(text("ALTER TABLE sitemap_entries ADD COLUMN test_document_type VARCHAR"))
+            logger.info("Added missing column sitemap_entries.test_document_type")
     logger.info("Database initialized")
 
 

@@ -15,10 +15,13 @@ export interface SitemapUrl {
   test_error?: string | null;
   test_http_status?: number | null;
   test_response_time_ms?: number | null;
+  test_document_type?: "html" | "file" | "empty" | "unknown" | null;
 }
 
 export interface LoadSitemapResponse {
   session_id: number;
+  sitemap_url: string;
+  session_status: SessionStatus;
   urls: SitemapUrl[];
   total: number;
 }

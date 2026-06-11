@@ -68,6 +68,31 @@ def _normalize_entries_host(entries: list[dict[str, str | None]], sitemap_url: s
     return normalized
 
 
+def _document_type_label(value: str | None) -> str | None:
+    if value == "html":
+        return "HTML"
+    if value == "file":
+        return "File"
+    if value == "empty":
+        return "Empty"
+    if value == "unknown":
+        return "Unknown"
+    return None
+
+
+def _test_url_export_value(entry) -> str:
+    if entry.test_status == "error":
+        return entry.test_error or "Error"
+    if entry.test_status == "pending":
+        return "Pending"
+    if entry.test_http_status is not None:
+        doc_type = _document_type_label(entry.test_document_type)
+        return f"HTTP {entry.test_http_status} • {doc_type}" if doc_type else f"HTTP {entry.test_http_status}"
+    if entry.test_status == "done":
+        return "Done"
+    return "—"
+
+
 async def _run_load_job(job_id: str, sitemap_url: str) -> None:
     job = LOAD_JOBS[job_id]
     db: Session = SessionLocal()
@@ -135,7 +160,16 @@ def load_sitemap_result(job_id: str = Query(...), db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail="Load job finished without session id")
 
     entries = crud.get_entries_by_session(db, job.session_id)
-    return schemas.SitemapLoadResponse(session_id=job.session_id, urls=entries, total=len(entries))
+    session = crud.get_session(db, job.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return schemas.SitemapLoadResponse(
+        session_id=job.session_id,
+        sitemap_url=session.sitemap_url,
+        session_status=session.status,
+        urls=entries,
+        total=len(entries),
+    )
 
 
 @router.post("/load", response_model=schemas.SitemapLoadResponse)
@@ -151,7 +185,13 @@ async def load_sitemap(payload: schemas.SitemapLoadRequest, db: Session = Depend
     normalized_urls = _normalize_entries_host(parsed_urls, str(payload.url))
     session = crud.create_scan_session(db, sitemap_url=str(payload.url))
     entries = crud.bulk_create_entries(db, session_id=session.id, entries=normalized_urls)
-    return schemas.SitemapLoadResponse(session_id=session.id, urls=entries, total=len(entries))
+    return schemas.SitemapLoadResponse(
+        session_id=session.id,
+        sitemap_url=session.sitemap_url,
+        session_status=session.status,
+        urls=entries,
+        total=len(entries),
+    )
 
 
 @router.get("/export")
@@ -164,16 +204,19 @@ def export_sitemap(session_id: int = Query(...), db: Session = Depends(get_db)) 
     if not entries:
         raise HTTPException(status_code=404, detail="No URLs to export")
 
-    data = [
-        {
+    include_title_column = any((entry.title or "").strip() for entry in entries)
+    data = []
+    for entry in entries:
+        row = {
             "URL": entry.url,
             "Last Modified": entry.lastmod,
-            "Priority": entry.priority,
             "Source Sitemap": entry.source_sitemap,
-            "Title": entry.title,
+            "Test URL": _test_url_export_value(entry),
+            "Response Time (ms)": entry.test_response_time_ms,
         }
-        for entry in entries
-    ]
+        if include_title_column:
+            row["Title"] = entry.title
+        data.append(row)
     df = pd.DataFrame(data)
 
     output = io.BytesIO()
@@ -202,7 +245,13 @@ def get_session_data(session_id: int = Query(...), db: Session = Depends(get_db)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     entries = crud.get_entries_by_session(db, session_id)
-    return schemas.SitemapLoadResponse(session_id=session_id, urls=entries, total=len(entries))
+    return schemas.SitemapLoadResponse(
+        session_id=session_id,
+        sitemap_url=session.sitemap_url,
+        session_status=session.status,
+        urls=entries,
+        total=len(entries),
+    )
 
 
 @router.get("/archive", response_model=schemas.ArchiveListResponse)
@@ -222,4 +271,24 @@ def restore_archive_session(session_id: int, db: Session = Depends(get_db)) -> s
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     entries = crud.get_entries_by_session(db, session_id)
-    return schemas.SitemapLoadResponse(session_id=session_id, urls=entries, total=len(entries))
+    return schemas.SitemapLoadResponse(
+        session_id=session_id,
+        sitemap_url=session.sitemap_url,
+        session_status=session.status,
+        urls=entries,
+        total=len(entries),
+    )
+
+
+@router.delete("/archive/{session_id}", response_model=schemas.DeleteArchiveResponse)
+def delete_archive_session(session_id: int, db: Session = Depends(get_db)) -> schemas.DeleteArchiveResponse:
+    session = crud.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.status in {"scanning", "testing"}:
+        raise HTTPException(status_code=409, detail="Cannot delete session while scanning/testing is in progress")
+
+    deleted = crud.delete_session(db, session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return schemas.DeleteArchiveResponse(status="deleted", session_id=session_id)

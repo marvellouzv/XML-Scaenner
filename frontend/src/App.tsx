@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ActionBar } from "./components/ActionBar";
 import { ArchiveModal } from "./components/ArchiveModal";
 import { ScanProgress } from "./components/ScanProgress";
+import { SessionReport } from "./components/SessionReport";
 import { SitemapInput } from "./components/SitemapInput";
 import { UrlTable } from "./components/UrlTable";
 import { WorkStatus } from "./components/WorkStatus";
@@ -29,7 +30,22 @@ function useTheme() {
 export default function App() {
   const theme = useTheme();
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const { urls, status, error, progress, sessionId, loadJobId, loadingFoundCount, setProgress, setStatus, setError, setUrls, setSession, setLoadingFoundCount } =
+  const {
+    urls,
+    status,
+    error,
+    progress,
+    sessionId,
+    sitemapUrl,
+    loadJobId,
+    loadingFoundCount,
+    setProgress,
+    setStatus,
+    setError,
+    setUrls,
+    setSession,
+    setLoadingFoundCount
+  } =
     useSitemapStore();
 
   const loadProgressQuery = useLoadProgressQuery(status === "loading");
@@ -53,7 +69,12 @@ export default function App() {
     if (!loadResultQuery.data) {
       return;
     }
-    setSession(loadResultQuery.data.session_id, loadResultQuery.data.urls);
+    setSession(
+      loadResultQuery.data.session_id,
+      loadResultQuery.data.sitemap_url,
+      loadResultQuery.data.urls,
+      loadResultQuery.data.session_status
+    );
   }, [loadResultQuery.data, setSession]);
 
   useEffect(() => {
@@ -157,6 +178,12 @@ export default function App() {
         </Card>
 
         <WorkStatus status={status} totalUrls={status === "loading" ? loadingFoundCount : urls.length} scanned={progress.scanned} />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <SessionReport sitemapUrl={sitemapUrl} rows={urls} />
+          <Card className="p-4">
+            <ActionBar layout="column" />
+          </Card>
+        </div>
 
         {error ? (
           <Card className="flex items-center justify-between border-red-500/50 bg-red-100/70 p-4 dark:bg-red-950/30">
@@ -176,9 +203,8 @@ export default function App() {
           </Card>
         ) : null}
 
-        <Card className="space-y-4 p-4">
-          <ActionBar />
-          {status === "scanning" || status === "testing" || status === "done" ? (
+        {status === "scanning" || status === "testing" || status === "done" ? (
+          <Card className="space-y-4 p-4">
             <ScanProgress
               mode={currentProgressMode}
               total={progress.total}
@@ -194,8 +220,8 @@ export default function App() {
               runtimeDelay={progress.runtimeDelay}
               runtimePendingUrls={progress.runtimePendingUrls}
             />
-          ) : null}
-        </Card>
+          </Card>
+        ) : null}
 
         <Card className="p-4">
           {urls.length === 0 && status !== "loading" ? (
